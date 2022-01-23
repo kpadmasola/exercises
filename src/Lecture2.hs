@@ -40,6 +40,9 @@ module Lecture2
     , constantFolding
     ) where
 
+import Data.Char ( isSpace )
+import Data.List ( sort )
+
 {- | Implement a function that finds a product of all the numbers in
 the list. But implement a lazier version of this function: if you see
 zero, you can stop calculating product and return 0 immediately.
@@ -48,7 +51,13 @@ zero, you can stop calculating product and return 0 immediately.
 84
 -}
 lazyProduct :: [Int] -> Int
-lazyProduct = error "TODO"
+lazyProduct [] = 1
+lazyProduct list = go 1 list
+  where
+    go :: Int -> [Int] -> Int
+    go 0 _             = 0
+    go result []       = result
+    go result (x : xs) = go (result * x) xs
 
 {- | Implement a function that duplicates every element in the list.
 
@@ -58,7 +67,8 @@ lazyProduct = error "TODO"
 "ccaabb"
 -}
 duplicate :: [a] -> [a]
-duplicate = error "TODO"
+duplicate [] = []
+duplicate (x : xs) = x : x : duplicate xs
 
 {- | Implement function that takes index and a list and removes the
 element at the given position. Additionally, this function should also
@@ -70,7 +80,16 @@ return the removed element.
 >>> removeAt 10 [1 .. 5]
 (Nothing,[1,2,3,4,5])
 -}
-removeAt = error "TODO"
+removeAt :: Int -> [a] -> (Maybe a, [a])
+removeAt _ [] = (Nothing, [])
+removeAt index list
+  | index < 0 = (Nothing, list)
+  | otherwise = (element, headPart ++ tailPart)
+    where
+      headPart = take index list
+      (element, tailPart) = case drop index list of
+        [] -> (Nothing, [])
+        (x: xs) -> (Just x, xs)
 
 {- | Write a function that takes a list of lists and returns only
 lists of even lengths.
@@ -81,7 +100,8 @@ lists of even lengths.
 ♫ NOTE: Use eta-reduction and function composition (the dot (.) operator)
   in this function.
 -}
-evenLists = error "TODO"
+evenLists :: [[a]] -> [[a]]
+evenLists = filter (even . length)
 
 {- | The @dropSpaces@ function takes a string containing a single word
 or number surrounded by spaces and removes all leading and trailing
@@ -97,7 +117,8 @@ spaces.
 
 🕯 HINT: look into Data.Char and Prelude modules for functions you may use.
 -}
-dropSpaces = error "TODO"
+dropSpaces :: String -> String
+dropSpaces = takeWhile (not . isSpace) . dropWhile isSpace
 
 {- |
 
@@ -159,8 +180,43 @@ data Knight = Knight
     , knightAttack    :: Int
     , knightEndurance :: Int
     }
+data Color
+  = Red
+  | Green
+  | Black
 
-dragonFight = error "TODO"
+
+data Treasure
+  = Gold
+  | GoldPlusTreasure
+
+data Dragon = Dragon
+  { dragonColor :: Color
+  , dragonExperiencePoints :: Int
+  , dragonTreasure :: Treasure
+  , dragonFirePower :: Int
+  , dragonHealth :: Int
+  }
+data FightOutcome
+  = DragonDies
+  | KnightDies
+  | KnightRunsAway
+
+dragonFight :: Knight -> Dragon -> FightOutcome
+dragonFight = go 0
+  where
+    go :: Int -> Knight -> Dragon -> FightOutcome
+    go n k d
+      | knightHealth k <= 0    = KnightDies
+      | dragonHealth d <= 0    = DragonDies
+      | knightEndurance k == 0 = KnightRunsAway
+      | otherwise = go n' k' d'
+              where
+                n' = n + 1
+                k' = k { knightEndurance = knightEndurance k - 1
+                       , knightHealth = knightHealth k - if n' `mod` 10 == 0 then dragonFirePower d else 0
+                       }
+                d' = d { dragonHealth = dragonHealth d - knightAttack k }
 
 ----------------------------------------------------------------------------
 -- Extra Challenges
@@ -181,7 +237,11 @@ False
 True
 -}
 isIncreasing :: [Int] -> Bool
-isIncreasing = error "TODO"
+isIncreasing []  = True
+isIncreasing [_] = True
+isIncreasing (x : y : rest)
+  | x > y     = False
+  | otherwise = isIncreasing (y : rest)
 
 {- | Implement a function that takes two lists, sorted in the
 increasing order, and merges them into new list, also sorted in the
@@ -194,7 +254,11 @@ verify that.
 [1,2,3,4,7]
 -}
 merge :: [Int] -> [Int] -> [Int]
-merge = error "TODO"
+merge xs [] = xs
+merge [] ys = ys
+merge (x : xs) (y : ys)
+  | x < y     = x : merge xs (y : ys)
+  | otherwise = y : merge (x : xs) ys
 
 {- | Implement the "Merge Sort" algorithm in Haskell. The @mergeSort@
 function takes a list of numbers and returns a new list containing the
@@ -211,8 +275,11 @@ The algorithm of merge sort is the following:
 [1,2,3]
 -}
 mergeSort :: [Int] -> [Int]
-mergeSort = error "TODO"
-
+mergeSort []  = []
+mergeSort [x] = [x]
+mergeSort xs  = merge (sort ps) (sort qs)
+  where
+    (ps, qs) = splitAt (length xs `div` 2) xs
 
 {- | Haskell is famous for being a superb language for implementing
 compilers and interpeters to other programming languages. In the next
@@ -264,7 +331,16 @@ data EvalError
 It returns either a successful evaluation result or an error.
 -}
 eval :: Variables -> Expr -> Either EvalError Int
-eval = error "TODO"
+eval _ (Lit i) = Right i
+eval symbolTable (Var symbol) = case lookup symbol symbolTable of
+    Nothing  -> Left (VariableNotFound symbol)
+    Just value -> Right value
+eval symbolTable (Add e1 e2) = addExpr (eval symbolTable e1) (eval symbolTable e2)
+  where
+    addExpr :: Either EvalError Int -> Either EvalError Int -> Either EvalError Int
+    addExpr (Left x) _ = Left x
+    addExpr _ (Left x) = Left x
+    addExpr (Right x) (Right y) = Right (x + y)
 
 {- | Compilers also perform optimizations! One of the most common
 optimizations is "Constant Folding". It performs arithmetic operations
@@ -288,4 +364,23 @@ Write a function that takes and expression and performs "Constant
 Folding" optimization on the given expression.
 -}
 constantFolding :: Expr -> Expr
-constantFolding = error "TODO"
+constantFolding = addExpr . extractConstant
+    where
+      extractConstant :: Expr -> ([Int], [Expr])
+      extractConstant (Lit i)   = ([i], [])
+      extractConstant (Var x)   = ([], [Var x])
+      extractConstant (Add x y) = (x1 ++ y1, x2 ++ y2)
+        where
+          (x1, x2) = extractConstant x
+          (y1, y2) = extractConstant y
+      addExpr :: ([Int], [Expr]) -> Expr
+      addExpr (c, e) = case (c, e) of
+        ([], []) -> error "invalid"
+        (xs, []) -> Lit (sum xs)
+        ([], ys) -> addVars ys
+        (xs, ys) -> if sum xs == 0 then addVars ys else Add (Lit (sum xs)) (addVars ys)
+      addVars :: [Expr] -> Expr
+      addVars []             = error "Invalid"
+      addVars [x]            = x
+      addVars [x, y]         = Add x y
+      addVars (x : y : rest) = Add (Add x y) (addVars rest)
