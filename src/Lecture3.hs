@@ -1,4 +1,5 @@
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 {- |
 Module                  : Lecture3
@@ -49,7 +50,7 @@ data Weekday
     | Friday
     | Saturday
     | Sunday
-    deriving (Show, Eq)
+    deriving (Show, Eq, Bounded, Enum)
 
 {- | Write a function that will display only the first three letters
 of a weekday.
@@ -57,7 +58,8 @@ of a weekday.
 >>> toShortString Monday
 "Mon"
 -}
-toShortString = error "TODO"
+toShortString :: Show a => a -> String
+toShortString = take 3 . show
 
 {- | Write a function that returns next day of the week, following the
 given day.
@@ -79,7 +81,12 @@ Tuesday
   would work for **any** enumeration type in Haskell (e.g. 'Bool',
   'Ordering') and not just 'Weekday'?
 -}
-next = error "TODO"
+
+next :: forall a. (Bounded a, Enum a) => a -> a
+next day = toEnum (nextDayNum `mod` totalEnumCount)
+  where
+    nextDayNum = fromEnum day + 1
+    totalEnumCount = fromEnum (maxBound :: a) + 1
 
 {- | Implement a function that calculates number of days from the first
 weekday to the second.
@@ -89,7 +96,12 @@ weekday to the second.
 >>> daysTo Friday Wednesday
 5
 -}
-daysTo = error "TODO"
+daysTo :: Weekday -> Weekday -> Int
+daysTo from to 
+  | result >= 0 = result
+  | otherwise = result + 1 + fromEnum (maxBound :: Weekday)
+  where
+    result = fromEnum to - fromEnum from
 
 {-
 
@@ -105,10 +117,12 @@ newtype Gold = Gold
 
 -- | Addition of gold coins.
 instance Semigroup Gold where
-
+  (<>) :: Gold -> Gold -> Gold
+  Gold { unGold = g1 } <> Gold { unGold = g2 } = Gold { unGold = g1 +g2 }
 
 instance Monoid Gold where
-
+  mempty :: Gold
+  mempty = Gold { unGold = 0 }
 
 {- | A reward for completing a difficult quest says how much gold
 you'll receive and whether you'll get a special reward.
@@ -122,10 +136,14 @@ data Reward = Reward
     } deriving (Show, Eq)
 
 instance Semigroup Reward where
-
+  (<>) :: Reward -> Reward -> Reward
+  Reward { rewardGold = g1, rewardSpecial = s1 }
+    <> Reward { rewardGold = g2, rewardSpecial = s2 }
+      = Reward { rewardGold = g1 <> g2, rewardSpecial = s1 || s2 }
 
 instance Monoid Reward where
-
+  mempty :: Reward
+  mempty  = Reward { rewardGold = mempty :: Gold, rewardSpecial = False }
 
 {- | 'List1' is a list that contains at least one element.
 -}
@@ -134,11 +152,17 @@ data List1 a = List1 a [a]
 
 -- | This should be list append.
 instance Semigroup (List1 a) where
-
+  (<>) :: List1 a -> List1 a -> List1 a
+  (List1 x xs) <> (List1 _ ys) = List1 x (xs ++ ys)
 
 {- | Does 'List1' have the 'Monoid' instance? If no then why?
 
-instance Monoid (List1 a) where
+Ans: List1 does not have a 'Monoid' instance, because there exists no identity value
+     such that when appended with any other value it returns that value unchanged.
+     The reason for this is that any value will have at least one element in the list
+     and appending creates list with at least 2 elements which will be different from
+     each one of the values that are being appended.
+
 -}
 
 {- | When fighting a monster, you can either receive some treasure or
@@ -156,11 +180,16 @@ monsters, you should get a combined treasure and not just the first
 🕯 HINT: You may need to add additional constraints to this instance
   declaration.
 -}
-instance Semigroup (Treasure a) where
+instance Semigroup a => Semigroup (Treasure a) where
+  (<>) :: Treasure a -> Treasure a -> Treasure a
+  NoTreasure <> NoTreasure = NoTreasure
+  NoTreasure <> SomeTreasure t = SomeTreasure t
+  SomeTreasure t <> NoTreasure = SomeTreasure t
+  SomeTreasure t1 <> SomeTreasure t2 = SomeTreasure (t1 <> t2)
 
-
-instance Monoid (Treasure a) where
-
+instance Monoid a => Monoid (Treasure a) where
+  mempty :: Treasure a
+  mempty = NoTreasure
 
 {- | Abstractions are less helpful if we can't write functions that
 use them!
@@ -178,7 +207,12 @@ together only different elements.
 Product {getProduct = 6}
 
 -}
-appendDiff3 = error "TODO"
+appendDiff3 :: (Eq a, Monoid a) => a -> a -> a -> a
+appendDiff3 x y z
+  | x == y = if y == z then x else y <> z
+  | y == z = if z == x then x else x <> y
+  | z == x = if x == y then x else x <> y
+  | otherwise = x <> y <> z
 
 {-
 
