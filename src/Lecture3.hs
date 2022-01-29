@@ -118,7 +118,7 @@ newtype Gold = Gold
 -- | Addition of gold coins.
 instance Semigroup Gold where
   (<>) :: Gold -> Gold -> Gold
-  Gold { unGold = g1 } <> Gold { unGold = g2 } = Gold { unGold = g1 +g2 }
+  Gold g1 <> Gold g2 = Gold (g1 + g2)
 
 instance Monoid Gold where
   mempty :: Gold
