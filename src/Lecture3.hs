@@ -122,7 +122,7 @@ instance Semigroup Gold where
 
 instance Monoid Gold where
   mempty :: Gold
-  mempty = Gold { unGold = 0 }
+  mempty = Gold 0
 
 {- | A reward for completing a difficult quest says how much gold
 you'll receive and whether you'll get a special reward.
