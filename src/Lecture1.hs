@@ -83,7 +83,7 @@ function.
 minmax :: Int -> Int -> Int -> Int
 minmax x y z = biggest - smallest
     where
-        biggest = max x (max y z)
+        biggest  = max x (max y z)
         smallest = min x (min y z)
 
 {- | Implement a function that takes a string, start and end positions
@@ -113,13 +113,8 @@ and finds a sum of the numbers inside this string.
 
 The string contains only spaces and/or numbers.
 -}
-strSum :: [Char] -> Int
-strSum str = go 0 (words str)
-    where
-        -- go :: Int -> [[Char]] -> Int
-        go result xs
-            | null xs   = result
-            | otherwise = go (result + read (head xs)) (tail xs)
+strSum :: String -> Int
+strSum str = sum (map read (words str))
 
 {- | Write a function that takes a number and a list of numbers and
 returns a string, saying how many elements of the list are strictly
@@ -135,9 +130,9 @@ and lower than 6 elements (4, 5, 6, 7, 8 and 9).
 🕯 HINT: Use recursion to implement this function.
 -}
 lowerAndGreater :: Int -> [Int] -> [Char]
-lowerAndGreater n list = go 0 0 list
+lowerAndGreater n = go 0 0
     where
-        -- go :: Int -> Int -> [Int] -> [Char] 
+        go :: Int -> Int -> [Int] -> [Char] 
         go numGreater numLower xs
             | null xs = show (n :: Int) ++ " is greater than " ++ show (numGreater :: Int) ++ " elements and lower than " ++ show (numLower :: Int) ++ " elements"
             | otherwise = if n > head xs
