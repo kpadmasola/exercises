@@ -103,7 +103,7 @@ string.
 -}
 subString :: Int -> Int -> [Char] -> [Char]
 subString start end str = take numChars (drop start str)
-    where numChars = end - (if start < 0 then 0 else start) + 1
+    where numChars = end - max 0 start + 1
 
 {- | Write a function that takes a String — space separated numbers,
 and finds a sum of the numbers inside this string.
