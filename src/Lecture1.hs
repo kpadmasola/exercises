@@ -119,7 +119,7 @@ strSum str = go 0 (words str)
         -- go :: Int -> [[Char]] -> Int
         go result xs
             | null xs   = result
-            | otherwise = go (result + read (head xs) :: Int) (tail xs)
+            | otherwise = go (result + read (head xs)) (tail xs)
 
 {- | Write a function that takes a number and a list of numbers and
 returns a string, saying how many elements of the list are strictly
