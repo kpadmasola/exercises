@@ -137,13 +137,11 @@ data Reward = Reward
 
 instance Semigroup Reward where
   (<>) :: Reward -> Reward -> Reward
-  Reward { rewardGold = g1, rewardSpecial = s1 }
-    <> Reward { rewardGold = g2, rewardSpecial = s2 }
-      = Reward { rewardGold = g1 <> g2, rewardSpecial = s1 || s2 }
+  Reward g1 s1 <> Reward g2 s2 = Reward (g1 <> g2) (s1 || s2)
 
 instance Monoid Reward where
   mempty :: Reward
-  mempty  = Reward { rewardGold = mempty, rewardSpecial = False }
+  mempty = Reward mempty False
 
 {- | 'List1' is a list that contains at least one element.
 -}
@@ -182,9 +180,8 @@ monsters, you should get a combined treasure and not just the first
 -}
 instance Semigroup a => Semigroup (Treasure a) where
   (<>) :: Treasure a -> Treasure a -> Treasure a
-  NoTreasure <> NoTreasure = NoTreasure
-  NoTreasure <> SomeTreasure t = SomeTreasure t
-  SomeTreasure t <> NoTreasure = SomeTreasure t
+  NoTreasure <> x = x
+  x <> NoTreasure = x
   SomeTreasure t1 <> SomeTreasure t2 = SomeTreasure (t1 <> t2)
 
 instance Monoid a => Monoid (Treasure a) where
@@ -244,8 +241,19 @@ types that can have such an instance.
 -- instance Foldable Weekday where
 -- instance Foldable Gold where
 -- instance Foldable Reward where
--- instance Foldable List1 where
--- instance Foldable Treasure where
+
+-- Ans: No instances are possible for Weekday, Gold, Reward as they are not polymorphic types.
+--      Foldable requires a polymorphic type for instantiation. e.g., of type (* -> *)
+
+instance Foldable List1 where
+  foldr :: (a -> b -> b) -> b -> List1 a -> b
+  foldr _ z (List1 _ [])       = z 
+  foldr f z (List1 y (x : xs)) = foldr f (f x z) (List1 y xs) 
+
+instance Foldable Treasure where
+  foldr :: (a -> b -> b) -> b -> Treasure a -> b
+  foldr _ z NoTreasure       = z 
+  foldr f z (SomeTreasure t) = f t z
 
 {-
 
@@ -260,8 +268,19 @@ types that can have such an instance.
 -- instance Functor Weekday where
 -- instance Functor Gold where
 -- instance Functor Reward where
--- instance Functor List1 where
--- instance Functor Treasure where
+
+-- Ans: No instances are possible for Weekday, Gold, Reward as they are not polymorphic types.
+--      Functor requires a polymorphic type for instantiation. e.g., of type (* -> *)
+
+instance Functor List1 where
+  fmap :: (a -> b) -> List1 a -> List1 b
+  fmap f (List1 x []) = List1 (f x) []
+  fmap f (List1 x xs) = List1 (f x) (fmap f xs)
+
+instance Functor Treasure where
+  fmap :: (a -> b) -> Treasure a -> Treasure b
+  fmap _ NoTreasure       = NoTreasure
+  fmap f (SomeTreasure t) = SomeTreasure (f t)
 
 {- | Functions are first-class values in Haskell. This means that they
 can be even stored inside other data types as well!
@@ -278,6 +297,6 @@ Nothing
 Just [8,9,10]
 >>> apply 5 [(+ 3), (* 4), div 17]
 [8,20,3]
-
 -}
-apply = error "TODO"
+apply :: (Functor f) => a -> f (a -> b) -> f b
+apply x = fmap (\ y -> y x) 
